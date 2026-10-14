@@ -26,10 +26,13 @@ Optional:
   DRY_RUN=1         read ./test_queue.json, do a no-op Arbox write, print, no finalize
 """
 
-import os, sys, json, time, urllib.request, urllib.parse
+import os, sys, json, time, unicodedata, urllib.request, urllib.parse
+
+def _norm(s):
+    return unicodedata.normalize("NFC", str(s or "")).strip()
 
 LOCATION_ID = 19747
-ALLOWED_SESSIONS = {"קודו אונליין", "CoWork Online", "קודו אונליין סופ\"ש"}
+ALLOWED_SESSIONS = {_norm(x) for x in ("קודו אונליין", "CoWork Online", "קודו אונליין סופ\"ש")}
 ARBOX_BASE = "https://arboxserver.arboxapp.com"
 
 JWT = os.environ.get("ARBOX_JWT", "")
@@ -97,7 +100,7 @@ def find_slot(date, start_time, session_label):
     rows = schedule_for(date)
     cands = [r for r in rows if (r.get("start_time") or "")[:5] == start_time[:5]]
     if session_label:
-        exact = [r for r in cands if (r.get("session_name") or "") == session_label]
+        exact = [r for r in cands if _norm(r.get("session_name")) == _norm(session_label)]
         if exact:
             cands = exact
     if len(cands) != 1:
@@ -162,7 +165,7 @@ def process_row(page, row, coaches, today):
     label = row.get("session_label") or ""
     original = row.get("original_instructor"); sub = row.get("substitute_instructor")
 
-    if label and label not in ALLOWED_SESSIONS:
+    if label and _norm(label) not in ALLOWED_SESSIONS:
         return finalize(rid, "error", f"session '{label}' not allowed")
     if date < today:
         return  # past slot: leave it, do not touch a class that already happened
