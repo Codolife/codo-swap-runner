@@ -1,0 +1,35 @@
+name: process-swaps
+
+# Runs every ~15 minutes, 24/7, on GitHub's free infrastructure.
+# GitHub may delay a scheduled run under load, so treat the cadence as "about
+# every 15 minutes", not to the second. That is the honest trade for $0 and no
+# always-on machine of Tamar's.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}   # lets us run it by hand from the Actions tab for testing
+
+concurrency:
+  group: process-swaps
+  cancel-in-progress: false   # never run two cycles at once
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Playwright + Chromium
+        run: |
+          pip install -r requirements.txt
+          python -m playwright install --with-deps chromium
+      - name: Process pending swaps
+        env:
+          ARBOX_JWT: ${{ secrets.ARBOX_JWT }}
+          ARBOX_API_KEY: ${{ secrets.ARBOX_API_KEY }}
+          APPS_SCRIPT_URL: ${{ secrets.APPS_SCRIPT_URL }}
+          SHARED_SECRET: ${{ secrets.SHARED_SECRET }}
+        run: python process.py
