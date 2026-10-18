@@ -157,6 +157,40 @@ def finalize(row_id, outcome, reason="", sub_email="", sub_first="", original_em
     })
 
 
+# ---------- snapshot: keep the form's picker current ----------
+
+def push_snapshot():
+    """Build the upcoming-slots list from Arbox and push it to Apps Script so the
+    form's picker stays current every cycle. Non-fatal on any failure."""
+    if DRY_RUN or not APPS_SCRIPT_URL:
+        return
+    today = israel_today()
+    to = time.strftime("%Y-%m-%d", time.localtime(time.time() + 31 * 86400))
+    try:
+        q = urllib.parse.urlencode({"from_date": today, "to_date": to, "location_id": LOCATION_ID})
+        _, text = _get(f"{ARBOX_BASE}/api/public/v3/schedule?{q}", headers={"api-key": API_KEY})
+        rows = json.loads(text).get("data", [])
+    except Exception as e:
+        print("snapshot fetch failed:", e); return
+    snap, seen = [], set()
+    for r in rows:
+        name = (r.get("staff_member") or {}).get("name")
+        if not name:
+            continue
+        date = r.get("date"); t = (r.get("start_time") or "")[:5]; sess = r.get("session_name") or ""
+        key = (name, date, t, sess)
+        if key in seen:
+            continue
+        seen.add(key)
+        snap.append({"name": name, "date": date, "time": t, "session": sess})
+    snap.sort(key=lambda x: (x["date"], x["time"]))
+    try:
+        _post(APPS_SCRIPT_URL, {"action": "setsnapshot", "key": SHARED_SECRET, "snapshot": snap})
+        print(f"snapshot pushed: {len(snap)} slots")
+    except Exception as e:
+        print("snapshot push failed:", e)
+
+
 # ---------- main ----------
 
 def process_row(page, row, coaches, today):
@@ -203,6 +237,8 @@ def main():
         missing += [k for k in ("APPS_SCRIPT_URL", "SHARED_SECRET") if not os.environ.get(k)]
     if missing:
         print("missing config:", ", ".join(missing)); sys.exit(2)
+
+    push_snapshot()  # refresh the form's slot list every cycle
 
     queue = [r for r in fetch_queue() if (r.get("status") or "pending") == "pending"]
     if not queue:
