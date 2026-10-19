@@ -6,7 +6,7 @@ name: process-swaps
 # always-on machine of Tamar's.
 on:
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "*/5 * * * *"
   workflow_dispatch: {}   # lets us run it by hand from the Actions tab for testing
 
 concurrency:
