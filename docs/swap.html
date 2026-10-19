@@ -1,0 +1,463 @@
+<!doctype html><html lang="he"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>עוזרת ההחלפות · קודו אונליין</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F6F8F9; --surface:#FFFFFF; --surface-2:#EEF2F3;
+    --ink:#0B2B3B; --ink-soft:#55636B; --ink-faint:#93A0A6;
+    --accent:#12A889; --accent-ink:#FFFFFF; --accent-soft:#DFF6EF; --accent-soft-ink:#0E6E59;
+    --pink:#F0195A; --pink-soft:#FDE3EC;
+    --gold:#B9791F; --gold-soft:#F3E6CD;
+    --danger:#C23B3B; --danger-soft:#FBE2E2;
+    --border:#E1E6E8;
+    --shadow: 0 1px 2px rgba(11,43,59,.05), 0 8px 24px -12px rgba(11,43,59,.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#071720; --surface:#0E222C; --surface-2:#142C38;
+      --ink:#E9F3F1; --ink-soft:#9FB4BA; --ink-faint:#6E8188;
+      --accent:#3EE0BD; --accent-ink:#04231C; --accent-soft:#123B33; --accent-soft-ink:#8CEDD4;
+      --pink:#FF5C8A; --pink-soft:#3A1521;
+      --gold:#E0AA53; --gold-soft:#332A17;
+      --danger:#E28080; --danger-soft:#3A2019;
+      --border:#1E3542;
+      --shadow: 0 1px 2px rgba(0,0,0,.35), 0 8px 24px -12px rgba(0,0,0,.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#071720; --surface:#0E222C; --surface-2:#142C38;
+    --ink:#E9F3F1; --ink-soft:#9FB4BA; --ink-faint:#6E8188;
+    --accent:#3EE0BD; --accent-ink:#04231C; --accent-soft:#123B33; --accent-soft-ink:#8CEDD4;
+    --pink:#FF5C8A; --pink-soft:#3A1521;
+    --gold:#E0AA53; --gold-soft:#332A17;
+    --danger:#E28080; --danger-soft:#3A2019;
+    --border:#1E3542;
+    --shadow: 0 1px 2px rgba(0,0,0,.35), 0 8px 24px -12px rgba(0,0,0,.55);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{ background:transparent; color:var(--ink); font:14px 'Assistant',-apple-system,BlinkMacSystemFont,sans-serif; direction:rtl; }
+  .mono{ font-family:'IBM Plex Mono', ui-monospace, monospace; }
+  .wrap{ max-width:520px; margin:0 auto; padding:24px 18px 32px; display:flex; flex-direction:column; gap:16px; }
+  header{ display:flex; flex-direction:row-reverse; align-items:flex-start; gap:16px; padding:0 4px; }
+  .header-text{ display:flex; flex-direction:column; gap:4px; flex:1; min-width:0; }
+  .brandmark{ width:78px; flex-shrink:0; margin-top:6px; }
+  .brandmark svg{ display:block; width:100%; height:auto; fill:var(--ink); }
+  .eyebrow{
+    font-size:12.5px; font-weight:700; color:var(--accent-soft-ink); background:var(--accent-soft);
+    display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:100px; width:fit-content; letter-spacing:.02em;
+  }
+  h1{ margin:6px 0 0; font-size:23px; font-weight:800; text-wrap:balance; }
+  .sub{ margin:0; color:var(--ink-soft); font-size:14.5px; line-height:1.5; }
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:18px; box-shadow:var(--shadow); overflow:hidden; }
+  .card-body{ padding:20px; display:flex; flex-direction:column; gap:16px; }
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  .field-label{ font-size:13.5px; font-weight:700; color:var(--ink-soft); }
+  select, input[type=date], input[type=time]{
+    width:100%; font-family:inherit; font-size:15.5px; padding:11px 13px;
+    border-radius:11px; border:1px solid var(--border); background:var(--surface-2); color:var(--ink);
+  }
+  input[type=date], input[type=time]{ font-family:'IBM Plex Mono', ui-monospace, monospace; }
+  select:focus, input:focus, button:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+  .row2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .btn{
+    font-family:inherit; font-size:15.5px; font-weight:700; border:none; border-radius:11px; padding:13px 18px;
+    cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    transition:filter .12s ease, transform .05s ease;
+  }
+  .btn:active{ transform:translateY(1px); }
+  .btn:disabled{ opacity:.5; cursor:default; }
+  .btn-primary{ background:var(--accent); color:var(--accent-ink); }
+  .btn-primary:hover:not(:disabled){ filter:brightness(1.06); }
+  .btn-ghost{ background:transparent; color:var(--ink-soft); border:1px solid var(--border); }
+  .btn-ghost:hover{ background:var(--surface-2); }
+  .upcoming-list{ display:flex; flex-direction:column; gap:6px; }
+  .upcoming-row{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:10px 12px; border-radius:11px; border:1px solid var(--border);
+    background:var(--surface-2); cursor:pointer; font-size:14.5px; text-align:right;
+    font-family:inherit; color:var(--ink); width:100%;
+  }
+  .upcoming-row:hover{ border-color:var(--accent); }
+  .upcoming-row.selected{ border-color:var(--accent); background:var(--accent-soft); color:var(--accent-soft-ink); }
+  .upcoming-row .u-when{ display:flex; flex-direction:column; align-items:flex-start; gap:1px; }
+  .upcoming-row .u-session{ font-size:12px; color:var(--ink-faint); }
+  .upcoming-row.selected .u-session{ color:var(--accent-soft-ink); opacity:.75; }
+  .upcoming-row .u-time{ font-family:'IBM Plex Mono', ui-monospace, monospace; direction:ltr; color:var(--ink-soft); font-size:13.5px; }
+  .upcoming-row.selected .u-time{ color:var(--accent-soft-ink); }
+  .manual-toggle{
+    background:none; border:none; padding:2px 4px; margin-top:-6px; align-self:flex-start;
+    font-family:inherit; font-size:13px; color:var(--ink-soft); text-decoration:underline;
+    cursor:pointer;
+  }
+  .manual-toggle:hover{ color:var(--accent); }
+  .error-line{ font-size:13.5px; color:var(--danger); display:none; }
+  .success-panel{ padding:22px; display:flex; flex-direction:column; gap:10px; align-items:center; text-align:center; }
+  .status-icon{
+    width:44px; height:44px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:800;
+    background:var(--accent-soft); color:var(--accent-soft-ink);
+  }
+  .status-icon.error{ background:var(--danger-soft); color:var(--danger); }
+  .spinner{
+    width:22px; height:22px; border-radius:50%;
+    border:3px solid var(--accent-soft); border-top-color:var(--accent);
+    animation:spin .8s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce){ .spinner{ animation-duration:1.8s; } }
+  .success-title{ font-size:17px; font-weight:800; }
+  .success-text{ font-size:14px; color:var(--ink-soft); line-height:1.5; }
+  .hint{ font-size:12.5px; color:var(--ink-faint); padding:0 4px; line-height:1.5; }
+  .loading{ display:flex; flex-direction:column; align-items:center; gap:12px; padding:28px; color:var(--ink-soft); font-size:14px; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="brandmark"><svg viewBox="0 0 160 58" role="img" aria-label="Co.Do"><title>codo_logo</title><path d="M108,13.54q-6.81-7.2-17.9-7.19H87.94V24.8h2.12V8.3h.53a20.68,20.68,0,0,1,15.82,6.63,22.5,22.5,0,0,1,6.17,15.85,22.27,22.27,0,0,1-6.17,15.78,20.77,20.77,0,0,1-15.82,6.57h-.53l.06-16.26c-.76,0-1.11,0-2.18,0V55.14h2.12q11.16,0,17.93-7.15a24.14,24.14,0,0,0,6.77-17.21A24.17,24.17,0,0,0,108,13.54Z"/><path d="M90.06,56.39H86.69V35.6l2.23,0c.42,0,.73,0,1.2,0h1.26l-.07,16.25A19.26,19.26,0,0,0,105.5,45.7a21.11,21.11,0,0,0,5.83-14.92,21.29,21.29,0,0,0-5.84-15A19.12,19.12,0,0,0,91.31,9.56V25.39H86.69V5.1h3.37c7.72,0,14,2.55,18.81,7.58h0A25.52,25.52,0,0,1,116,30.78a25.47,25.47,0,0,1-7.11,18.07C104.16,53.85,97.82,56.39,90.06,56.39Z"/><path d="M76.06,25.93a4.82,4.82,0,1,1-4.82,4.81,4.82,4.82,0,0,1,4.82-4.81"/><path d="M38.74,38.72a11.27,11.27,0,0,1-3.37-8.2,10.86,10.86,0,0,1,3.6-8,11.68,11.68,0,0,1,8.48-3.31,11.56,11.56,0,0,1,8.38,3.49,11,11,0,0,1,3.4,8.12,11.35,11.35,0,0,1-3.5,8.13,11.12,11.12,0,0,1-8.31,3.39H47A11.19,11.19,0,0,1,38.74,38.72Zm18.88-7.85A10.35,10.35,0,0,0,47.46,20.55a10,10,0,0,0-7.33,3A9.83,9.83,0,0,0,37,30.69a9.65,9.65,0,0,0,3,7.16,10.1,10.1,0,0,0,7.28,3.09A10.3,10.3,0,0,0,57.62,30.87Z"/><path d="M47.56,48h-.65a17,17,0,0,1-12.28-5.33,17.09,17.09,0,0,1-5-12.23A16.62,16.62,0,0,1,35,18.36a17.48,17.48,0,0,1,12.27-4.9h.2a17.42,17.42,0,0,1,12.36,5.16,16.69,16.69,0,0,1,5.07,12.23A17.08,17.08,0,0,1,59.76,43,16.93,16.93,0,0,1,47.56,48ZM47.4,26a5.64,5.64,0,0,0-3.74,1.53,4.36,4.36,0,0,0-1.34,3.26,4.83,4.83,0,0,0,1.6,3.33,4.35,4.35,0,0,0,3.4,1.16h0a4.79,4.79,0,0,0,3.48-1.3,3.86,3.86,0,0,0,1.3-3,4.55,4.55,0,0,0-1.38-3.35A4.39,4.39,0,0,0,47.54,26Z"/><path d="M138.67,47.9a17.16,17.16,0,1,1,17.15-17.16A17.18,17.18,0,0,1,138.67,47.9Zm0-31.81a14.66,14.66,0,1,0,14.65,14.65A14.67,14.67,0,0,0,138.67,16.09Z"/><path d="M15,46.05A20.43,20.43,0,0,1,8.1,30.5Q8.21,21.56,15.33,15A23.14,23.14,0,0,1,27.71,8.83c0-3.12,0,0,0-3.06a27.1,27.1,0,0,0-15,6.94Q4.56,20,4.44,30.14t7.69,17.8a29.22,29.22,0,0,0,15.58,7.75V52.23C23.37,51.32,18.35,49.26,15,46.05Z"/><path d="M28.46,56.57l-.86-.13a30.22,30.22,0,0,1-16-8c-5.34-5.25-8-11.43-7.92-18.35s2.93-13,8.47-18A28,28,0,0,1,27.6,5l.84-.11v.85c0,1.14,0,1.4,0,1.46h0c0,.33,0,.83,0,1.6v.64l-.63.1a22.39,22.39,0,0,0-12,5.95,20.24,20.24,0,0,0-7,15,19.77,19.77,0,0,0,6.63,15,26.55,26.55,0,0,0,12.39,6l.59.13ZM27,6.64a26.4,26.4,0,0,0-13.79,6.63C8,18,5.26,23.66,5.19,30.15s2.43,12.3,7.47,17.26A28.66,28.66,0,0,0,27,54.8v-2c-2.77-.64-8.41-2.35-12.51-6.23h0a21.25,21.25,0,0,1-7.1-16.11c.07-6.15,2.58-11.55,7.47-16.07A23.88,23.88,0,0,1,27,8.19V7.3h0Q27,7,27,6.64Z"/></svg></div>
+    <div class="header-text">
+      <span class="eyebrow">עוזרת ההחלפות · קודו אונליין</span>
+      <h1>מבקשת החלפה?</h1>
+      <p class="sub">קורה לכולנו 🙂 תמלא.י כאן, ואני כבר מסדרת את השאר.</p>
+    </div>
+  </header>
+
+  <div class="card">
+    <div class="loading" id="loadingBox">
+      <span class="spinner"></span>
+      <span>טוען את רשימת המשבצות…</span>
+    </div>
+
+    <div class="card-body" id="formBody" style="display:none;">
+      <div class="field">
+        <label class="field-label" for="requesterSelect">מי את.ה?</label>
+        <select id="requesterSelect"><option value="" selected disabled>בחר.י את שמך</option></select>
+      </div>
+      <div class="field" id="upcomingWrap" style="display:none;">
+        <label class="field-label">איזו משבצת שלך נחליף?</label>
+        <div class="upcoming-list" id="upcomingList"></div>
+        <button class="btn btn-ghost" id="moreUpcomingBtn" style="display:none;">עוד משבצות</button>
+      </div>
+      <div class="field" style="display:none;">
+        <label class="field-label" for="originalSelect">מי המנחה המקורי.ת של המשבצת?</label>
+        <select id="originalSelect"><option value="" selected disabled>בחר.י מנחה</option></select>
+      </div>
+      <div class="field">
+        <label class="field-label" for="subSelect">מי המחליף.ה?</label>
+        <select id="subSelect"><option value="" selected disabled>בחר.י מנחה</option></select>
+      </div>
+      <button type="button" class="manual-toggle" id="manualToggle">לא מוצא.ת את המשבצת למעלה? הזן/י ידנית</button>
+      <div class="row2" id="manualDateTimeWrap" style="display:none;">
+        <div class="field">
+          <label class="field-label" for="dateInput">תאריך</label>
+          <input type="date" id="dateInput">
+        </div>
+        <div class="field">
+          <label class="field-label" for="timeInput">שעה</label>
+          <select id="timeInput">
+            <option value="" selected disabled>בחר.י משבצת</option>
+            <option value="08:30">08:30</option>
+            <option value="11:00">11:00</option>
+            <option value="13:30">13:30</option>
+            <option value="16:00">16:00</option>
+            <option value="20:30">20:30</option>
+            <option value="21:00">21:00</option>
+          </select>
+        </div>
+      </div>
+      <div class="error-line" id="errorLine"></div>
+      <button class="btn btn-primary" id="submitBtn">שליחה ✓</button>
+    </div>
+
+    <div class="success-panel" id="successPanel" style="display:none;">
+      <div class="status-icon" id="statusIcon">✓</div>
+      <div class="success-title" id="successTitle">נשלח ✓</div>
+      <div class="success-text" id="successText"></div>
+      <button class="btn btn-ghost" id="anotherBtn" style="display:none;">בקשה נוספת</button>
+    </div>
+  </div>
+
+  <p class="hint">הבקשה נשמרת אצלנו, ואנחנו מסדרות את ההחלפה ביומן ובמערכת השיבוצים.</p>
+</div>
+
+<script>
+(function(){
+  var API = 'https://script.google.com/macros/s/AKfycbxdoOLM9fraX_Qe0OGst7el1iIrc-CbDAyqbm2oN3qeTMbI0F362_0uvhAONDd2hLOi/exec';
+
+  // ---- JSONP: talk to the Google backend across origins, no CORS ----
+  var jsonpSeq = 0;
+  function jsonp(params, cb){
+    var name = '__codo_cb_' + (++jsonpSeq) + '_' + Date.now();
+    var done = false;
+    var s = document.createElement('script');
+    var timer = setTimeout(function(){ finish(null); }, 15000);
+    function finish(data){
+      if (done) return; done = true;
+      clearTimeout(timer);
+      try { delete window[name]; } catch(e){ window[name] = undefined; }
+      if (s.parentNode) s.parentNode.removeChild(s);
+      cb(data);
+    }
+    window[name] = function(data){ finish(data); };
+    var q = ['callback=' + name];
+    for (var k in params){ if (params.hasOwnProperty(k)) q.push(encodeURIComponent(k) + '=' + encodeURIComponent(params[k])); }
+    s.onerror = function(){ finish(null); };
+    s.src = API + '?' + q.join('&');
+    document.head.appendChild(s);
+  }
+
+  // ---- auto-resize the embedding iframe (if any) to our content height ----
+  function postHeight(){
+    try {
+      var h = document.querySelector('.wrap').getBoundingClientRect().height + 24;
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ codoSwapHeight: Math.ceil(h) }, '*');
+      }
+    } catch(e){}
+  }
+  var ro = window.ResizeObserver ? new ResizeObserver(postHeight) : null;
+  if (ro) ro.observe(document.body);
+  window.addEventListener('load', postHeight);
+  setInterval(postHeight, 1000);
+
+  var WEEKDAY_HE = ['יום ראשון','יום שני','יום שלישי','יום רביעי','יום חמישי','יום שישי','יום שבת'];
+  function weekdayLabel(iso){
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+    if (!m) return '';
+    var d = new Date(Date.UTC(+m[1], +m[2]-1, +m[3]));
+    return WEEKDAY_HE[d.getUTCDay()];
+  }
+  function formatDateIL(iso){
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+    return m ? (m[3] + '.' + m[2] + '.' + m[1]) : iso;
+  }
+  function escapeHtml(s){ var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+
+  var SCHEDULE_SNAPSHOT = [];
+  var requesterSelect = document.getElementById('requesterSelect');
+  var originalSelect = document.getElementById('originalSelect');
+  var subSelect = document.getElementById('subSelect');
+  var dateInput = document.getElementById('dateInput');
+  var timeInput = document.getElementById('timeInput');
+  var errorLine = document.getElementById('errorLine');
+  var submitBtn = document.getElementById('submitBtn');
+  var upcomingWrap = document.getElementById('upcomingWrap');
+  var upcomingList = document.getElementById('upcomingList');
+  var moreUpcomingBtn = document.getElementById('moreUpcomingBtn');
+  var manualToggle = document.getElementById('manualToggle');
+  var manualDateTimeWrap = document.getElementById('manualDateTimeWrap');
+  var loadingBox = document.getElementById('loadingBox');
+  var formBody = document.getElementById('formBody');
+  var successPanel = document.getElementById('successPanel');
+  var successText = document.getElementById('successText');
+  var successTitle = document.getElementById('successTitle');
+  var statusIcon = document.getElementById('statusIcon');
+  var anotherBtn = document.getElementById('anotherBtn');
+
+  var upcomingVisible = 5;
+  var selectedSession = 'קודו אונליין';
+  var swapSummaryText = '';
+
+  var MALE_NAMES = { "יובל זולוטוב":true, "יואל שילט":true, "אביב שרון":true };
+  function isMale(name){ return !!MALE_NAMES[name]; }
+  function replaceVerb(name){ return isMale(name) ? 'יחליף' : 'תחליף'; }
+
+  var todayISO = (function(){
+    var f = new Intl.DateTimeFormat('en-CA', { timeZone:'Asia/Jerusalem', year:'numeric', month:'2-digit', day:'2-digit' });
+    var p = {}; f.formatToParts(new Date()).forEach(function(x){ p[x.type]=x.value; });
+    return p.year + '-' + p.month + '-' + p.day;
+  })();
+  var nowHM = (function(){
+    var f = new Intl.DateTimeFormat('en-GB', { timeZone:'Asia/Jerusalem', hour:'2-digit', minute:'2-digit', hour12:false });
+    return f.format(new Date());
+  })();
+
+  manualToggle.addEventListener('click', function(){
+    var showing = manualDateTimeWrap.style.display !== 'none';
+    manualDateTimeWrap.style.display = showing ? 'none' : 'grid';
+    manualToggle.textContent = showing ? 'לא מוצא.ת את המשבצת למעלה? הזן/י ידנית' : 'הסתר.י תאריך ושעה ידניים';
+  });
+
+  function buildRoster(){
+    var seen = {}, names = [];
+    SCHEDULE_SNAPSHOT.forEach(function(r){ if (r && r.name && !seen[r.name]){ seen[r.name] = true; names.push(r.name); } });
+    names.sort(function(a,b){ return a.localeCompare(b, 'he'); });
+    [requesterSelect, originalSelect, subSelect].forEach(function(sel){
+      names.forEach(function(n){
+        var o = document.createElement('option'); o.value = n; o.textContent = n; sel.appendChild(o);
+      });
+    });
+  }
+
+  function renderUpcoming(name){
+    upcomingVisible = 5;
+    var rows = SCHEDULE_SNAPSHOT.filter(function(r){
+        if (r.name !== name) return false;
+        if (r.date > todayISO) return true;
+        if (r.date === todayISO) return r.time > nowHM;
+        return false;
+      })
+      .sort(function(a,b){ return (a.date + a.time) < (b.date + b.time) ? -1 : 1; });
+    if (!rows.length) {
+      upcomingWrap.style.display = 'none';
+      manualDateTimeWrap.style.display = 'grid';
+      manualToggle.textContent = 'לא נמצאו משבצות קרובות על שמך. מלאי תאריך ושעה:';
+      postHeight();
+      return;
+    }
+    upcomingWrap.style.display = 'flex';
+    manualDateTimeWrap.style.display = 'none';
+    manualToggle.textContent = 'לא מוצא.ת את המשבצת למעלה? הזן/י ידנית';
+    drawUpcoming(rows);
+    moreUpcomingBtn.onclick = function(){ upcomingVisible += 5; drawUpcoming(rows); };
+    postHeight();
+  }
+
+  function drawUpcoming(rows){
+    upcomingList.innerHTML = '';
+    rows.slice(0, upcomingVisible).forEach(function(row){
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'upcoming-row';
+      btn.innerHTML =
+        '<span class="u-when">' + escapeHtml(weekdayLabel(row.date)) + ' · ' + escapeHtml(formatDateIL(row.date)) +
+        '<span class="u-session">' + escapeHtml(row.session) + '</span></span>' +
+        '<span class="u-time mono">' + escapeHtml(row.time) + '</span>';
+      btn.addEventListener('click', function(){
+        Array.prototype.forEach.call(upcomingList.children, function(el){ el.classList.remove('selected'); });
+        btn.classList.add('selected');
+        originalSelect.value = requesterSelect.value;
+        dateInput.value = row.date;
+        timeInput.value = row.time;
+        selectedSession = row.session;
+        manualDateTimeWrap.style.display = 'none';
+        manualToggle.textContent = 'לא מוצא.ת את המשבצת למעלה? הזן/י ידנית';
+      });
+      upcomingList.appendChild(btn);
+    });
+    moreUpcomingBtn.style.display = rows.length > upcomingVisible ? 'block' : 'none';
+  }
+
+  requesterSelect.addEventListener('change', function(){
+    originalSelect.value = requesterSelect.value;
+    dateInput.value = '';
+    timeInput.value = '';
+    renderUpcoming(requesterSelect.value);
+  });
+  [dateInput, timeInput].forEach(function(el){
+    el.addEventListener('change', function(){
+      Array.prototype.forEach.call(upcomingList.children, function(row){ row.classList.remove('selected'); });
+      selectedSession = 'קודו אונליין';
+    });
+  });
+
+  function setStatusIcon(kind){
+    if (kind === 'spin'){ statusIcon.className = 'status-icon'; statusIcon.innerHTML = '<span class="spinner"></span>'; }
+    else if (kind === 'done'){ statusIcon.className = 'status-icon'; statusIcon.textContent = '✓'; }
+    else if (kind === 'error'){ statusIcon.className = 'status-icon error'; statusIcon.textContent = '!'; }
+  }
+  function enterSubmitted(){
+    setStatusIcon('done');
+    successTitle.textContent = 'נשלח בהצלחה ✓';
+    successText.innerHTML = 'קיבלנו את הבקשה: <b>' + escapeHtml(swapSummaryText) + '</b>. אנחנו כבר מסדרות את ההחלפה ביומן ובמערכת השיבוצים, ומוודאות שהכל תפוס נכון.';
+    anotherBtn.style.display = '';
+    postHeight();
+  }
+  function enterDone(){
+    setStatusIcon('done');
+    successTitle.textContent = 'ההחלפה בוצעה ✓';
+    successText.innerHTML = '<b>' + escapeHtml(swapSummaryText) + '</b><br>עודכן ביומן ובמערכת השיבוצים.';
+    anotherBtn.style.display = '';
+    postHeight();
+  }
+  function enterError(reason){
+    setStatusIcon('error');
+    successTitle.textContent = 'לא הצלחתי להשלים';
+    successText.innerHTML = 'הבקשה נשמרה, אבל ההחלפה לא בוצעה אוטומטית' + (reason ? (' (' + escapeHtml(reason) + ')') : '') + '. אנחנו על זה ונשלים ידנית.';
+    anotherBtn.style.display = '';
+    postHeight();
+  }
+
+  var pollTimer = null;
+  function stopPoll(){ if (pollTimer){ clearInterval(pollTimer); pollTimer = null; } }
+  function watchSwap(id){
+    stopPoll();
+    var tries = 0, MAX = 12; // ~every 20s for up to ~4 minutes
+    pollTimer = setInterval(function(){
+      tries++;
+      jsonp({ action:'statusjs', id:id }, function(res){
+        var s = res && res.status;
+        if (s === 'done'){ stopPoll(); enterDone(); }
+        else if (s === 'error'){ stopPoll(); enterError(res.reason || ''); }
+        else if (tries >= MAX){ stopPoll(); }
+      });
+    }, 20000);
+  }
+
+  submitBtn.addEventListener('click', function(){
+    errorLine.style.display = 'none';
+    var requester = requesterSelect.value, original = originalSelect.value, sub = subSelect.value;
+    var date = dateInput.value, time = timeInput.value;
+    if (!requester || !original || !sub || !date || !time) {
+      errorLine.textContent = 'חסר פרטים: ודאי שבחרת את שמך, משבצת (או תאריך ושעה ידנית), ומחליף.ה.';
+      errorLine.style.display = 'block'; postHeight(); return;
+    }
+    if (original === sub) {
+      errorLine.textContent = 'המנחה המקורי.ת והמחליף.ה לא יכולים.ות להיות אותו שם.';
+      errorLine.style.display = 'block'; postHeight(); return;
+    }
+    submitBtn.disabled = true; submitBtn.textContent = 'שולחת…';
+    swapSummaryText = sub + ' ' + replaceVerb(sub) + ' את ' + original + ' · ' + formatDateIL(date) + ' בשעה ' + time;
+    jsonp({
+      action:'submitjs',
+      requester_name: requester,
+      original_instructor: original,
+      substitute_instructor: sub,
+      date: date,
+      start_time: time,
+      session_label: selectedSession
+    }, function(res){
+      submitBtn.disabled = false; submitBtn.textContent = 'שליחה ✓';
+      if (!res || !res.ok){
+        errorLine.textContent = 'לא הצלחתי לשמור כרגע. נסי שוב עוד רגע.';
+        errorLine.style.display = 'block'; postHeight(); return;
+      }
+      formBody.style.display = 'none';
+      successPanel.style.display = 'flex';
+      enterSubmitted();
+      watchSwap(res.row_id);
+    });
+  });
+
+  anotherBtn.addEventListener('click', function(){
+    stopPoll();
+    successPanel.style.display = 'none';
+    formBody.style.display = 'flex';
+    originalSelect.value = requesterSelect.value; subSelect.value = ''; dateInput.value = ''; timeInput.value = '';
+    selectedSession = 'קודו אונליין';
+    Array.prototype.forEach.call(upcomingList.children, function(row){ row.classList.remove('selected'); });
+    postHeight();
+  });
+
+  // ---- boot: load the slot snapshot, then show the form ----
+  function boot(){
+    jsonp({ action:'snapshotjs' }, function(res){
+      if (!res || !res.slots){
+        loadingBox.innerHTML = '<span>לא הצלחתי לטעון את רשימת המשבצות כרגע. רענני את העמוד בעוד רגע.</span>';
+        postHeight(); return;
+      }
+      SCHEDULE_SNAPSHOT = res.slots;
+      buildRoster();
+      loadingBox.style.display = 'none';
+      formBody.style.display = 'flex';
+      postHeight();
+    });
+  }
+  boot();
+})();
+</script>
+</body></html>
