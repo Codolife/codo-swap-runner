@@ -38,7 +38,7 @@
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
-  body{ background:transparent; color:var(--ink); font:14px 'Assistant',-apple-system,BlinkMacSystemFont,sans-serif; direction:rtl; }
+  body{ background:var(--bg); color:var(--ink); font:14px 'Assistant',-apple-system,BlinkMacSystemFont,sans-serif; direction:rtl; min-height:100vh; }
   .mono{ font-family:'IBM Plex Mono', ui-monospace, monospace; }
   .wrap{ max-width:520px; margin:0 auto; padding:24px 18px 32px; display:flex; flex-direction:column; gap:16px; }
   header{ display:flex; flex-direction:row-reverse; align-items:flex-start; gap:16px; padding:0 4px; }
@@ -49,7 +49,7 @@
     font-size:12.5px; font-weight:700; color:var(--accent-soft-ink); background:var(--accent-soft);
     display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:100px; width:fit-content; letter-spacing:.02em;
   }
-  h1{ margin:6px 0 0; font-size:23px; font-weight:800; text-wrap:balance; }
+  h1{ margin:6px 0 0; font-size:23px; font-weight:800; text-wrap:balance; color:var(--ink); }
   .sub{ margin:0; color:var(--ink-soft); font-size:14.5px; line-height:1.5; }
   .card{ background:var(--surface); border:1px solid var(--border); border-radius:18px; box-shadow:var(--shadow); overflow:hidden; }
   .card-body{ padding:20px; display:flex; flex-direction:column; gap:16px; }
