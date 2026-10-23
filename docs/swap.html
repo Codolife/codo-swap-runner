@@ -443,11 +443,28 @@
     postHeight();
   });
 
-  // ---- boot: load the slot snapshot, then show the form ----
-  function boot(){
+  // ---- boot: load the slot snapshot with auto-retry, then show the form ----
+  // The Apps Script endpoint is healthy but slow (~2.5s) and occasionally drops a
+  // single JSONP call. Retry a few times so a momentary miss never surfaces the
+  // scary "couldn't load" error to a מנחה; only give up after several attempts,
+  // and then offer a one-click retry instead of forcing a full page refresh.
+  var LOADING_HTML = '<span class="spinner"></span><span>טוען את רשימת המשבצות…</span>';
+  function loadSnapshot(attemptsLeft, cb){
     jsonp({ action:'snapshotjs' }, function(res){
+      if (res && res.slots){ cb(res); return; }
+      if (attemptsLeft > 1){ setTimeout(function(){ loadSnapshot(attemptsLeft - 1, cb); }, 1200); return; }
+      cb(null);
+    });
+  }
+  function boot(){
+    loadingBox.innerHTML = LOADING_HTML;
+    loadingBox.style.display = '';
+    formBody.style.display = 'none';
+    loadSnapshot(4, function(res){
       if (!res || !res.slots){
-        loadingBox.innerHTML = '<span>לא הצלחתי לטעון את רשימת המשבצות כרגע. רענני את העמוד בעוד רגע.</span>';
+        loadingBox.innerHTML = '<span>לא הצלחתי לטעון את רשימת המשבצות. </span><button type="button" class="btn btn-ghost" id="retryLoadBtn">נסי שוב</button>';
+        var rb = document.getElementById('retryLoadBtn');
+        if (rb) rb.addEventListener('click', boot);
         postHeight(); return;
       }
       SCHEDULE_SNAPSHOT = res.slots;
