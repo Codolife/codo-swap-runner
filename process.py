@@ -184,9 +184,21 @@ def push_snapshot():
         seen.add(key)
         snap.append({"name": name, "date": date, "time": t, "session": sess})
     snap.sort(key=lambda x: (x["date"], x["time"]))
+    # Full instructor pool from Arbox (includes reserve/substitute-only מנחות who
+    # have no slot in the schedule window, so the form can offer them as a
+    # substitute). Non-fatal: if this fetch fails we push slots only and Apps
+    # Script keeps the previous roster rather than wiping it.
+    roster = []
     try:
-        _post(APPS_SCRIPT_URL, {"action": "setsnapshot", "key": SHARED_SECRET, "snapshot": snap})
-        print(f"snapshot pushed: {len(snap)} slots")
+        roster = sorted(n for n in coach_map().keys() if n)
+    except Exception as e:
+        print("roster fetch failed (pushing slots only):", e)
+    try:
+        payload = {"action": "setsnapshot", "key": SHARED_SECRET, "snapshot": snap}
+        if roster:
+            payload["roster"] = roster
+        _post(APPS_SCRIPT_URL, payload)
+        print(f"snapshot pushed: {len(snap)} slots, {len(roster)} roster")
     except Exception as e:
         print("snapshot push failed:", e)
 
