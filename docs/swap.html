@@ -238,6 +238,7 @@
   function escapeHtml(s){ var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
 
   var SCHEDULE_SNAPSHOT = [];
+  var ROSTER = [];  // full Arbox instructor pool, incl. reserves without a slot
   var requesterSelect = document.getElementById('requesterSelect');
   var originalSelect = document.getElementById('originalSelect');
   var subSelect = document.getElementById('subSelect');
@@ -283,11 +284,24 @@
   });
 
   function buildRoster(){
-    var seen = {}, names = [];
-    SCHEDULE_SNAPSHOT.forEach(function(r){ if (r && r.name && !seen[r.name]){ seen[r.name] = true; names.push(r.name); } });
-    names.sort(function(a,b){ return a.localeCompare(b, 'he'); });
-    [requesterSelect, originalSelect, subSelect].forEach(function(sel){
-      names.forEach(function(n){
+    // Scheduled instructors (have a slot in the next ~month). The person being
+    // replaced and the requester must be someone who actually has a slot, so
+    // those two pickers stay on this list.
+    var seen = {}, scheduled = [];
+    SCHEDULE_SNAPSHOT.forEach(function(r){ if (r && r.name && !seen[r.name]){ seen[r.name] = true; scheduled.push(r.name); } });
+    scheduled.sort(function(a,b){ return a.localeCompare(b, 'he'); });
+
+    // The SUBSTITUTE can be anyone in the pool, including a reserve מנחה with no
+    // slot of her own (the backend already validates the substitute against the
+    // full Arbox coach list). Use the full roster, unioned with the scheduled
+    // names so nothing disappears if the roster push ever fails.
+    var subSeen = {}, subNames = [];
+    ROSTER.concat(scheduled).forEach(function(n){ if (n && !subSeen[n]){ subSeen[n] = true; subNames.push(n); } });
+    subNames.sort(function(a,b){ return a.localeCompare(b, 'he'); });
+
+    [[requesterSelect, scheduled], [originalSelect, scheduled], [subSelect, subNames]].forEach(function(pair){
+      var sel = pair[0];
+      pair[1].forEach(function(n){
         var o = document.createElement('option'); o.value = n; o.textContent = n; sel.appendChild(o);
       });
     });
@@ -468,6 +482,7 @@
         postHeight(); return;
       }
       SCHEDULE_SNAPSHOT = res.slots;
+      ROSTER = res.roster || [];
       buildRoster();
       loadingBox.style.display = 'none';
       formBody.style.display = 'flex';
