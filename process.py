@@ -41,6 +41,18 @@ APPS_SCRIPT_URL = os.environ.get("APPS_SCRIPT_URL", "")
 SHARED_SECRET = os.environ.get("SHARED_SECRET", "")
 DRY_RUN = os.environ.get("DRY_RUN", "") in ("1", "true", "True")
 
+# Arbox coach accounts that are NOT active substitutable instructors, so they
+# must not appear as a choice in the swap form's substitute picker. This hides
+# them from the form only; it does NOT delete or change the Arbox accounts.
+# Kept-on-purpose non-scheduled reserves are יהלי and שיר (Tamar 2026-10-29).
+EXCLUDE_COACHES = {
+    "גילור פרידמן זלצר",
+    "מלכי פוריס",
+    "קרן הראל",
+    "תהל גולדשמיט",
+    "תמר טאובר פאוזנר",
+}
+
 # Arbox's WAF rejects the default Python-urllib agent (403), so we present a
 # normal browser User-Agent on every plain-HTTP read.
 _UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
@@ -190,10 +202,15 @@ def push_snapshot():
     # Script keeps the previous roster rather than wiping it.
     roster = []
     try:
-        # Drop Arbox test/dummy coach accounts (name contains "ניסיון") so they
-        # never show up as a selectable substitute in the form. This only hides
-        # them from the picker; it does NOT touch the Arbox account itself.
-        roster = sorted(n for n in coach_map().keys() if n and "ניסיון" not in n)
+        # Hide from the substitute picker: test/dummy accounts (name contains
+        # "ניסיון") and Arbox coach accounts that are NOT active substitutable
+        # instructors (old / inactive / non-teaching), per Tamar 2026-10-29 she
+        # wants only יהלי + שיר kept among the non-scheduled reserves. This only
+        # hides them from the form; the Arbox accounts themselves are untouched.
+        roster = sorted(
+            n for n in coach_map().keys()
+            if n and "ניסיון" not in n and n not in EXCLUDE_COACHES
+        )
     except Exception as e:
         print("roster fetch failed (pushing slots only):", e)
     try:
