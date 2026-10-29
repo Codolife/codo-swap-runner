@@ -190,7 +190,10 @@ def push_snapshot():
     # Script keeps the previous roster rather than wiping it.
     roster = []
     try:
-        roster = sorted(n for n in coach_map().keys() if n)
+        # Drop Arbox test/dummy coach accounts (name contains "ניסיון") so they
+        # never show up as a selectable substitute in the form. This only hides
+        # them from the picker; it does NOT touch the Arbox account itself.
+        roster = sorted(n for n in coach_map().keys() if n and "ניסיון" not in n)
     except Exception as e:
         print("roster fetch failed (pushing slots only):", e)
     try:
