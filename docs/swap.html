@@ -463,6 +463,30 @@
   // scary "couldn't load" error to a מנחה; only give up after several attempts,
   // and then offer a one-click retry instead of forcing a full page refresh.
   var LOADING_HTML = '<span class="spinner"></span><span>טוען את רשימת המשבצות…</span>';
+
+  // Primary source: a STATIC snapshot.json served by GitHub Pages (same CDN as
+  // this page). Plain fetch, always warm, fast and reliable. This replaces the
+  // slow/cold anonymous Apps Script JSONP call, which was intermittently failing
+  // to load the picker for some מנחות and showing the scary error.
+  var STATIC_URL = 'https://codolife.github.io/codo-swap-runner/snapshot.json';
+  var CACHE_KEY = 'codo_swap_snapshot_v1';
+
+  function saveCache(res){ try { localStorage.setItem(CACHE_KEY, JSON.stringify(res)); } catch(e){} }
+  function readCache(){ try { var v = localStorage.getItem(CACHE_KEY); return v ? JSON.parse(v) : null; } catch(e){ return null; } }
+
+  function loadStatic(cb){
+    var done = false;
+    var to = setTimeout(function(){ if(!done){ done = true; cb(null); } }, 7000);
+    try {
+      fetch(STATIC_URL + '?v=' + Math.floor(Date.now() / 300000))
+        .then(function(r){ return r.ok ? r.json() : null; })
+        .then(function(j){ if(done) return; done = true; clearTimeout(to); cb(j && j.slots ? j : null); })
+        .catch(function(){ if(done) return; done = true; clearTimeout(to); cb(null); });
+    } catch(e){ if(!done){ done = true; clearTimeout(to); cb(null); } }
+  }
+
+  // Fallback source: the Apps Script JSONP endpoint. Kept for resilience; tried
+  // only if the static file could not be loaded.
   function loadSnapshot(attemptsLeft, cb){
     jsonp({ action:'snapshotjs' }, function(res){
       if (res && res.slots){ cb(res); return; }
@@ -470,23 +494,34 @@
       cb(null);
     });
   }
+
+  function applySnapshot(res){
+    SCHEDULE_SNAPSHOT = res.slots;
+    ROSTER = res.roster || [];
+    buildRoster();
+    loadingBox.style.display = 'none';
+    formBody.style.display = 'flex';
+    postHeight();
+  }
+
   function boot(){
     loadingBox.innerHTML = LOADING_HTML;
     loadingBox.style.display = '';
     formBody.style.display = 'none';
-    loadSnapshot(4, function(res){
-      if (!res || !res.slots){
+    // 1) fast static file on the CDN
+    loadStatic(function(res){
+      if (res && res.slots){ saveCache(res); applySnapshot(res); return; }
+      // 2) Apps Script JSONP fallback
+      loadSnapshot(4, function(res2){
+        if (res2 && res2.slots){ saveCache(res2); applySnapshot(res2); return; }
+        // 3) last resort: a snapshot this browser cached on an earlier visit
+        var cached = readCache();
+        if (cached && cached.slots){ applySnapshot(cached); return; }
         loadingBox.innerHTML = '<span>לא הצלחתי לטעון את רשימת המשבצות. </span><button type="button" class="btn btn-ghost" id="retryLoadBtn">נסי שוב</button>';
         var rb = document.getElementById('retryLoadBtn');
         if (rb) rb.addEventListener('click', boot);
-        postHeight(); return;
-      }
-      SCHEDULE_SNAPSHOT = res.slots;
-      ROSTER = res.roster || [];
-      buildRoster();
-      loadingBox.style.display = 'none';
-      formBody.style.display = 'flex';
-      postHeight();
+        postHeight();
+      });
     });
   }
   boot();
