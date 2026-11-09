@@ -222,6 +222,25 @@ def push_snapshot():
     except Exception as e:
         print("snapshot push failed:", e)
 
+    # Also write the snapshot as a STATIC file served by GitHub Pages
+    # (docs/snapshot.json). The form loads this first: it is a plain same-CDN
+    # fetch, always warm and fast, instead of the slow/cold anonymous Apps Script
+    # JSONP call that was failing to load the picker for some מנחות. The workflow
+    # commits this file only when it changed. Apps Script stays as the fallback.
+    try:
+        doc = {
+            "generated": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "slots": snap,
+        }
+        if roster:
+            doc["roster"] = roster
+        os.makedirs("docs", exist_ok=True)
+        with open(os.path.join("docs", "snapshot.json"), "w", encoding="utf-8") as fh:
+            json.dump(doc, fh, ensure_ascii=False, separators=(",", ":"))
+        print("snapshot.json written")
+    except Exception as e:
+        print("snapshot.json write failed:", e)
+
 
 # ---------- main ----------
 
