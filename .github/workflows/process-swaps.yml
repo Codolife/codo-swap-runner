@@ -17,6 +17,8 @@ jobs:
   run:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: write   # lets the commit step publish docs/snapshot.json
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -33,3 +35,15 @@ jobs:
           APPS_SCRIPT_URL: ${{ secrets.APPS_SCRIPT_URL }}
           SHARED_SECRET: ${{ secrets.SHARED_SECRET }}
         run: python process.py
+      - name: Publish snapshot.json if it changed
+        run: |
+          if ! git diff --quiet -- docs/snapshot.json; then
+            git config user.name "codo-swap-bot"
+            git config user.email "bot@codolife.com"
+            git add docs/snapshot.json
+            git commit -m "snapshot: refresh picker data [skip ci]"
+            git push
+            echo "snapshot.json committed"
+          else
+            echo "snapshot.json unchanged"
+          fi
