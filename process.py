@@ -321,6 +321,25 @@ def run_cycle():
 # for the unreliable scheduler. See operating-ledger 2026-11-16.
 LOOP_SECONDS = int(os.environ.get("LOOP_SECONDS", str(5 * 3600 + 30 * 60)))
 SNAPSHOT_EVERY = 15 * 60   # push the picker snapshot at most this often
+FAIL_STREAK_ALERT = 5      # consecutive broken cycles before we fail loud
+
+
+def _alert_stuck(err):
+    """Something keeps breaking (expired ARBOX_JWT, Arbox login change, Apps
+    Script down). Don't let swaps sit pending and silent for hours, that is the
+    exact complaint this system got. Mark the pending rows as error, which fires
+    notifyFailure_ to team@ — the same fail-loud path we already trust. A מנחה
+    can resubmit once it recovers (last submission wins)."""
+    try:
+        for r in fetch_queue():
+            if (r.get("status") or "pending") == "pending":
+                rid = r.get("row_id") or r.get("id")
+                try:
+                    finalize(rid, "error", f"runner stuck: {err}")
+                except Exception:
+                    pass
+    except Exception as e:
+        print("alert path failed:", e)
 
 
 def main():
@@ -332,6 +351,7 @@ def main():
 
     deadline = time.time() + LOOP_SECONDS
     last_snapshot = 0.0
+    fail_streak = 0
     print(f"runner up; polling the queue every ~60s for {LOOP_SECONDS}s")
     while time.time() < deadline:
         try:
@@ -341,10 +361,16 @@ def main():
             n = run_cycle()
             if n:
                 print(f"processed {n} pending swap(s)")
+            fail_streak = 0                   # a clean cycle clears the alarm
         except Exception as e:
             # One bad cycle (Arbox hiccup, transient network) must not kill the
-            # whole run; the next tick retries.
-            print("cycle error (continuing):", e)
+            # whole run; the next tick retries. But a PERSISTENT break must not
+            # stay silent, or swaps sit pending for hours unnoticed.
+            fail_streak += 1
+            print(f"cycle error (continuing, streak {fail_streak}):", e)
+            if fail_streak >= FAIL_STREAK_ALERT:
+                _alert_stuck(e)
+                fail_streak = 0               # alert once per streak, not every tick
         time.sleep(max(1, min(60, deadline - time.time())))
     print("loop complete")
 
