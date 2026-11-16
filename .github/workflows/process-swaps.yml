@@ -1,34 +1,51 @@
 name: process-swaps
 
-# Runs every ~15 minutes, 24/7, on GitHub's free infrastructure.
-# GitHub may delay a scheduled run under load, so treat the cadence as "about
-# every 15 minutes", not to the second. That is the honest trade for $0 and no
-# always-on machine of Tamar's.
+# Roberta stays awake: one run polls the queue every ~60s for ~5h50m, so a swap
+# is processed within a minute. The schedule is only a RESTART NET, not the main
+# clock: while a run is alive, any other triggered run sees it in-progress and
+# exits at once (the "another run active" gate below), so there is never overlap
+# and no cancelled-run emails. When the long run ends, the next scheduled tick
+# starts a fresh one. GitHub's scheduler is unreliable to the minute, but it only
+# has to restart the loop a few times a day, not drive every swap.
 on:
   schedule:
-    - cron: "*/5 * * * *"
-  workflow_dispatch: {}   # lets us run it by hand from the Actions tab for testing
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
 
-concurrency:
-  group: process-swaps
-  cancel-in-progress: false   # never run two cycles at once
+permissions:
+  contents: write   # commit docs/snapshot.json
+  actions: write    # read run state for the gate; best-effort relaunch
 
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: write   # lets the commit step publish docs/snapshot.json
+    timeout-minutes: 350   # ~5h50m, under GitHub's 6h job cap
     steps:
+      - name: Exit if another run is already processing
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sleep 10   # let a just-finished predecessor fully exit before we count
+          others=$(gh api "repos/${{ github.repository }}/actions/workflows/process-swaps.yml/runs?per_page=50" \
+            --jq "[.workflow_runs[] | select(.id != ${{ github.run_id }}) | select(.status == \"in_progress\" or .status == \"queued\")] | length")
+          echo "other in-progress runs: $others"
+          if [ "$others" -gt 0 ]; then
+            echo "another run is alive; this one yields."
+            echo "SKIP=1" >> "$GITHUB_ENV"
+          fi
       - uses: actions/checkout@v4
+        if: env.SKIP != '1'
       - uses: actions/setup-python@v5
+        if: env.SKIP != '1'
         with:
           python-version: "3.12"
       - name: Install Playwright + Chromium
+        if: env.SKIP != '1'
         run: |
           pip install -r requirements.txt
           python -m playwright install --with-deps chromium
-      - name: Process pending swaps
+      - name: Process pending swaps (long-poll)
+        if: env.SKIP != '1'
         env:
           ARBOX_JWT: ${{ secrets.ARBOX_JWT }}
           ARBOX_API_KEY: ${{ secrets.ARBOX_API_KEY }}
@@ -36,6 +53,7 @@ jobs:
           SHARED_SECRET: ${{ secrets.SHARED_SECRET }}
         run: python process.py
       - name: Publish snapshot.json if it changed
+        if: env.SKIP != '1'
         run: |
           if ! git diff --quiet -- docs/snapshot.json; then
             git config user.name "codo-swap-bot"
@@ -47,3 +65,13 @@ jobs:
           else
             echo "snapshot.json unchanged"
           fi
+      - name: Relaunch to bridge the gap (best-effort)
+        if: always() && env.SKIP != '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # If GitHub honours a GITHUB_TOKEN workflow_dispatch, the next run
+          # starts immediately for zero-gap coverage. If it silently refuses
+          # (recursion guard), no harm: the schedule net restarts us. Either way
+          # the gate above prevents overlap.
+          gh workflow run process-swaps.yml -R ${{ github.repository }} || echo "relaunch not honoured; schedule net will restart"
