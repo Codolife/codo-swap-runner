@@ -25,12 +25,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          sleep 10   # let a just-finished predecessor fully exit before we count
-          others=$(gh api "repos/${{ github.repository }}/actions/workflows/process-swaps.yml/runs?per_page=50" \
-            --jq "[.workflow_runs[] | select(.id != ${{ github.run_id }}) | select(.status == \"in_progress\" or .status == \"queued\")] | length")
-          echo "other in-progress runs: $others"
-          if [ "$others" -gt 0 ]; then
-            echo "another run is alive; this one yields."
+          sleep 30   # let a just-finished predecessor exit its Post steps first
+          # Yield only to an OLDER active run (smaller id). This is deterministic:
+          # if a relaunch and a scheduled run start together, the newer one yields
+          # and the older one keeps going, so they never both bail out.
+          older=$(gh api "repos/${{ github.repository }}/actions/workflows/process-swaps.yml/runs?per_page=50" \
+            --jq "[.workflow_runs[] | select(.id < ${{ github.run_id }}) | select(.status == \"in_progress\" or .status == \"queued\")] | length")
+          echo "older active runs: $older"
+          if [ "$older" -gt 0 ]; then
+            echo "an older run is alive; this one yields."
             echo "SKIP=1" >> "$GITHUB_ENV"
           fi
       - uses: actions/checkout@v4
@@ -54,19 +57,23 @@ jobs:
         run: python process.py
       - name: Publish snapshot.json if it changed
         if: env.SKIP != '1'
+        continue-on-error: true   # a stale checkout losing the push race must NOT kill the chain
         run: |
           if ! git diff --quiet -- docs/snapshot.json; then
             git config user.name "codo-swap-bot"
             git config user.email "bot@codolife.com"
             git add docs/snapshot.json
             git commit -m "snapshot: refresh picker data [skip ci]"
-            git push
-            echo "snapshot.json committed"
+            git pull --rebase origin main || true   # checkout is ~5h old; catch up before pushing
+            git push && echo "snapshot.json committed" || echo "snapshot push skipped (will refresh next run)"
           else
             echo "snapshot.json unchanged"
           fi
       - name: Relaunch to bridge the gap (best-effort)
-        if: always() && env.SKIP != '1'
+        # success() only: a FAILED run must not relaunch, or a broken run would
+        # loop every ~2min and flood team@ with "Run failed" mail. On failure the
+        # chain stops and the schedule net restarts it (at most one mail per tick).
+        if: success() && env.SKIP != '1'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
