@@ -282,18 +282,12 @@ def process_row(page, row, coaches, today):
     finalize(rid, "done", "", sub_email, sub_first, original_email=current_email or "")
 
 
-def main():
-    missing = [k for k in ("ARBOX_JWT", "ARBOX_API_KEY") if not os.environ.get(k)]
-    if not DRY_RUN:
-        missing += [k for k in ("APPS_SCRIPT_URL", "SHARED_SECRET") if not os.environ.get(k)]
-    if missing:
-        print("missing config:", ", ".join(missing)); sys.exit(2)
-
-    push_snapshot()  # refresh the form's slot list every cycle
-
+def run_cycle():
+    """Process every pending swap once. Opens a browser only when there is work,
+    so an idle minute costs one cheap Apps Script read and nothing else."""
     queue = [r for r in fetch_queue() if (r.get("status") or "pending") == "pending"]
     if not queue:
-        print("no pending requests"); return
+        return 0
 
     today = israel_today()
     coaches = coach_map()
@@ -317,6 +311,42 @@ def main():
                 except Exception:
                     pass
         browser.close()
+    return len(queue)
+
+
+# How long one GitHub Actions run stays up polling. ~5h50m keeps it under
+# GitHub's 6h job cap. The workflow's schedule is only a restart net: while this
+# loop is alive, other triggered runs see it in-progress and exit immediately
+# (no overlap), so a swap is picked up within ~1 minute instead of waiting hours
+# for the unreliable scheduler. See operating-ledger 2026-11-16.
+LOOP_SECONDS = int(os.environ.get("LOOP_SECONDS", str(5 * 3600 + 30 * 60)))
+SNAPSHOT_EVERY = 15 * 60   # push the picker snapshot at most this often
+
+
+def main():
+    missing = [k for k in ("ARBOX_JWT", "ARBOX_API_KEY") if not os.environ.get(k)]
+    if not DRY_RUN:
+        missing += [k for k in ("APPS_SCRIPT_URL", "SHARED_SECRET") if not os.environ.get(k)]
+    if missing:
+        print("missing config:", ", ".join(missing)); sys.exit(2)
+
+    deadline = time.time() + LOOP_SECONDS
+    last_snapshot = 0.0
+    print(f"runner up; polling the queue every ~60s for {LOOP_SECONDS}s")
+    while time.time() < deadline:
+        try:
+            if time.time() - last_snapshot > SNAPSHOT_EVERY:
+                push_snapshot()               # refresh the form's slot list
+                last_snapshot = time.time()
+            n = run_cycle()
+            if n:
+                print(f"processed {n} pending swap(s)")
+        except Exception as e:
+            # One bad cycle (Arbox hiccup, transient network) must not kill the
+            # whole run; the next tick retries.
+            print("cycle error (continuing):", e)
+        time.sleep(max(1, min(60, deadline - time.time())))
+    print("loop complete")
 
 
 if __name__ == "__main__":
