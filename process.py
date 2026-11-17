@@ -53,6 +53,16 @@ EXCLUDE_COACHES = {
     "תמר טאובר פאוזנר",
 }
 
+# A few מנחות read their calendar at a different Google account than the one
+# Arbox holds. This override is used ONLY for the address that gets the calendar
+# invite + "you're assigned" notice (the one passed to finalize()). The Arbox
+# idempotency/verify checks keep using the Arbox email on purpose — overriding
+# those would make every swap to her fail "arbox write not reflected on verify".
+# Tamar 2026-11-17: יעל משעני אובל watches yaelmishmish, not the Arbox yaelmishani.
+CALENDAR_EMAIL_OVERRIDE = {
+    "יעל משעני אובל": "yaelmishmish@gmail.com",
+}
+
 # Arbox's WAF rejects the default Python-urllib agent (403), so we present a
 # normal browser User-Agent on every plain-HTTP read.
 _UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
@@ -265,10 +275,14 @@ def process_row(page, row, coaches, today):
 
     sub_email = sub_info["email"]; uf = sub_info["user_fk"]
     sub_first = (sub or "").split(" ")[0]
+    # Address for the calendar invite + notice. Defaults to the Arbox email, but
+    # overridden for מנחות who watch a different account. NEVER use this for the
+    # Arbox checks below — they must compare against the Arbox email.
+    notify_email = CALENDAR_EMAIL_OVERRIDE.get(sub, sub_email)
 
     if current_email and sub_email and current_email.lower() == sub_email.lower():
         print(f"  row {rid}: Arbox already shows {sub}; skipping write")
-        return finalize(rid, "done", "", sub_email, sub_first)
+        return finalize(rid, "done", "", notify_email, sub_first)
 
     ok, res = arbox_reassign(page, sid, uf, sub)
     if not ok:
@@ -279,7 +293,7 @@ def process_row(page, row, coaches, today):
         return finalize(rid, "error", "arbox write not reflected on verify")
 
     print(f"  row {rid}: {sub} now on {date} {start} ({label}) — verified")
-    finalize(rid, "done", "", sub_email, sub_first, original_email=current_email or "")
+    finalize(rid, "done", "", notify_email, sub_first, original_email=current_email or "")
 
 
 def run_cycle():
