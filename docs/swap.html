@@ -168,6 +168,15 @@
             <option value="21:00">21:00</option>
           </select>
         </div>
+        <div class="field">
+          <label class="field-label" for="sessionTypeInput">סוג מפגש</label>
+          <select id="sessionTypeInput">
+            <option value="" selected disabled>בחר.י סוג</option>
+            <option value="קודו אונליין">קודו אונליין</option>
+            <option value="CoWork Online">CoWork (אונ' ת&quot;א)</option>
+            <option value="סופ&quot;ש">סופ&quot;ש</option>
+          </select>
+        </div>
       </div>
       <div class="error-line" id="errorLine"></div>
       <button class="btn btn-primary" id="submitBtn">שליחה ✓</button>
@@ -251,6 +260,7 @@
   var moreUpcomingBtn = document.getElementById('moreUpcomingBtn');
   var manualToggle = document.getElementById('manualToggle');
   var manualDateTimeWrap = document.getElementById('manualDateTimeWrap');
+  var sessionTypeInput = document.getElementById('sessionTypeInput');
   var loadingBox = document.getElementById('loadingBox');
   var formBody = document.getElementById('formBody');
   var successPanel = document.getElementById('successPanel');
@@ -424,6 +434,17 @@
       errorLine.textContent = 'המנחה המקורי.ת והמחליף.ה לא יכולים.ות להיות אותו שם.';
       errorLine.style.display = 'block'; postHeight(); return;
     }
+    // Session type: when a slot was picked from the list it is locked to that
+    // slot. In manual entry there is no slot to read it from, so the type must
+    // be chosen explicitly, or the swap goes to the wrong calendar and fails.
+    var sessionLabel = selectedSession;
+    if (manualDateTimeWrap.style.display !== 'none') {
+      sessionLabel = sessionTypeInput.value;
+      if (!sessionLabel) {
+        errorLine.textContent = 'בהזנה ידנית צריך לבחור גם סוג מפגש (קודו אונליין או CoWork).';
+        errorLine.style.display = 'block'; postHeight(); return;
+      }
+    }
     submitBtn.disabled = true; submitBtn.textContent = 'שולחת…';
     swapSummaryText = sub + ' ' + replaceVerb(sub) + ' את ' + original + ' · ' + formatDateIL(date) + ' בשעה ' + time;
     jsonp({
@@ -433,7 +454,7 @@
       substitute_instructor: sub,
       date: date,
       start_time: time,
-      session_label: selectedSession
+      session_label: sessionLabel
     }, function(res){
       submitBtn.disabled = false; submitBtn.textContent = 'שליחה ✓';
       if (!res || !res.ok){
