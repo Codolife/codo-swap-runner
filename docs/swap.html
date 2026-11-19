@@ -406,21 +406,44 @@
     postHeight();
   }
 
-  var pollTimer = null;
+  function enterStillPending(){
+    // The request is saved (the row exists) but hasn't finished processing in
+    // the window we polled. Never leave her on "we're arranging it" with no
+    // resolution — tell her it is safely in and she can close.
+    setStatusIcon('done');
+    successTitle.textContent = 'הבקשה נקלטה ✓';
+    successText.innerHTML = '<b>' + escapeHtml(swapSummaryText) + '</b><br>הבקשה נשמרה אצלנו ותטופל. אפשר לסגור את החלון, אין צורך להמתין כאן.';
+    anotherBtn.style.display = '';
+    postHeight();
+  }
+
+  var pollTimer = null, pollId = null;
   function stopPoll(){ if (pollTimer){ clearInterval(pollTimer); pollTimer = null; } }
+  function checkOnce(){
+    if (!pollId) return;
+    jsonp({ action:'statusjs', id:pollId }, function(res){
+      var s = res && res.status;
+      if (s === 'done'){ pollId = null; stopPoll(); enterDone(); }
+      else if (s === 'error'){ pollId = null; stopPoll(); enterError(res.reason || ''); }
+    });
+  }
   function watchSwap(id){
     stopPoll();
-    var tries = 0, MAX = 12; // ~every 20s for up to ~4 minutes
+    pollId = id;
+    var tries = 0, MAX = 45; // ~every 20s for up to ~15 minutes
+    checkOnce();             // check once right away, don't wait 20s
     pollTimer = setInterval(function(){
       tries++;
-      jsonp({ action:'statusjs', id:id }, function(res){
-        var s = res && res.status;
-        if (s === 'done'){ stopPoll(); enterDone(); }
-        else if (s === 'error'){ stopPoll(); enterError(res.reason || ''); }
-        else if (tries >= MAX){ stopPoll(); }
-      });
+      if (tries >= MAX){ stopPoll(); enterStillPending(); return; }
+      checkOnce();
     }, 20000);
   }
+  // Phones pause timers while the tab is in the background (e.g. she switched to
+  // WhatsApp). When she comes back, check immediately so the screen updates
+  // instead of being frozen on "arranging it".
+  document.addEventListener('visibilitychange', function(){
+    if (!document.hidden && pollId) checkOnce();
+  });
 
   submitBtn.addEventListener('click', function(){
     errorLine.style.display = 'none';
